@@ -9,6 +9,7 @@ class AsmDedupper:
         self.markers = {'.cfi_startproc', '.cfi_endproc'}
 
     def dedup(self):
+        substitution_count = 0
         self.load_blocks()
         for i in range(1, len(self.blocks)):
             cur_block = self.blocks[i]
@@ -16,10 +17,16 @@ class AsmDedupper:
                 trial_block = self.blocks[j]
                 common_length = self.common_tail_length(cur_block, trial_block)
                 if common_length > 4:
-                    print('Found common block of size', common_length)
-                    print(cur_block)
-                    print(trial_block)
-                    print(i, j)
+                    # FIXME go through all choices and pick the longest
+                    # rather than the first one.
+                    self.substitute_common(trial_block, cur_block, common_length, substitution_count)
+                    substitution_count += 1
+                    break
+
+    def substitute_common(self, into_block, modified_block, common_length, label_id):
+        assert(self.common_tail_length(into_block, modified_block) == common_length)
+        into_block.insert(-common_length, 'tail_packer_%s:\n' % label_id)
+        modified_block[-common_length:-1] = ['\tjmp tail_packer_%d\n' % label_id]
 
     def common_tail_length(self, b1, b2):
         i1 = len(b1)-1
@@ -44,9 +51,14 @@ class AsmDedupper:
         print(self.blocks)
         print('Num of blocks:', len(self.blocks))
 
+    def print_raw(self):
+        for b in self.blocks:
+            for line in b:
+                print(line.rstrip())
+
 if __name__ == '__main__':
     ifile = sys.argv[1]
     ad = AsmDedupper(ifile)
     ad.dedup()
-    #ad.print_stats()
-
+    ad.print_raw()
+    
