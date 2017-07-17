@@ -25,8 +25,9 @@ class AsmDedupper:
 
     def substitute_common(self, into_block, modified_block, common_length, label_id):
         assert(self.common_tail_length(into_block, modified_block) == common_length)
-        into_block.insert(-common_length, 'tail_packer_%s:\n' % label_id)
-        modified_block[-common_length:-1] = ['\tjmp tail_packer_%d\n' % label_id]
+        label = 'Ltail_packer_%s' % label_id
+        into_block.insert(-common_length, '%s:\n' % label)
+        modified_block[-common_length+1:-1] = ['\tjmp %s\n' % label]
 
     def common_tail_length(self, b1, b2):
         i1 = len(b1)-1
