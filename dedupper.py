@@ -3,8 +3,9 @@
 import sys, os
 
 class AsmDedupper:
-    def __init__(self, ifname):
+    def __init__(self, ifname, ofname):
         self.ifname = ifname
+        self.ofname = ofname
         self.blocks = []
         self.markers = {'.cfi_startproc', '.cfi_endproc'}
         self.done_replacements = {}
@@ -55,14 +56,16 @@ class AsmDedupper:
         print(self.blocks)
         print('Num of blocks:', len(self.blocks))
 
-    def print_raw(self):
+    def write_out(self):
+        ofile = open(self.ofname, 'w')
         for b in self.blocks:
             for line in b:
-                print(line.rstrip())
+                ofile.write(line)
 
 if __name__ == '__main__':
     ifile = sys.argv[1]
-    ad = AsmDedupper(ifile)
+    ofile = sys.argv[2]
+    ad = AsmDedupper(ifile, ofile)
     ad.dedup()
-    ad.print_raw()
-    
+    ad.write_out()
+
