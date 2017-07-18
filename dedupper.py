@@ -7,21 +7,24 @@ class AsmDedupper:
         self.ifname = ifname
         self.blocks = []
         self.markers = {'.cfi_startproc', '.cfi_endproc'}
+        self.done_replacements = {}
 
     def dedup(self):
         substitution_count = 0
         self.load_blocks()
         for i in range(1, len(self.blocks)):
             cur_block = self.blocks[i]
+            largest_length = 0
+            largest_block = None
             for j in range(i):
                 trial_block = self.blocks[j]
                 common_length = self.common_tail_length(cur_block, trial_block)
-                if common_length > 4:
-                    # FIXME go through all choices and pick the longest
-                    # rather than the first one.
-                    self.substitute_common(trial_block, cur_block, common_length, substitution_count)
-                    substitution_count += 1
-                    break
+                if common_length > largest_length:
+                    largest_length = common_length
+                    largest_block = trial_block
+            if largest_length > 4:
+                self.substitute_common(largest_block, cur_block, largest_length, substitution_count)
+                substitution_count += 1
 
     def substitute_common(self, into_block, modified_block, common_length, label_id):
         assert(self.common_tail_length(into_block, modified_block) == common_length)
@@ -32,7 +35,7 @@ class AsmDedupper:
     def common_tail_length(self, b1, b2):
         i1 = len(b1)-1
         i2 = len(b2)-1
-        while i1 >= 0 and i2 >= 0 and b1[i1] == b2[i2]: # FIXME, skip plain loop targets
+        while i1 >= 0 and i2 >= 0 and b1[i1].split('##')[0].rstrip() == b2[i2].split('##')[0].rstrip():
             i1 -= 1
             i2 -= 1
         return len(b1) - i1
